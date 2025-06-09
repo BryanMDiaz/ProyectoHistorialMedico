@@ -1,0 +1,454 @@
+import tkinter as tk
+from tkinter import *
+from tkinter import Button, ttk, scrolledtext, Toplevel
+from tkinter import messagebox
+from modelo.pacienteDAO import Persona, editarDatoPaciente, guardarDatoPaciente, listar, listarCondicion, eliminarPaciente
+import tkcalendar as tc
+from tkcalendar import *
+from tkcalendar import Calendar
+from datetime import datetime, date
+
+# Clase de inicializacion predeterminada
+class Frame(tk.Frame):
+    def __init__(self, root):
+        super().__init__(root, width=1280, height=720)
+        self.root = root
+        self.pack()
+        self.config(bg='#CDD8FF')
+        self.idPersona = None
+        self.camposPacientes() 
+        self.idPersona = None
+        self.deshabilitar()
+        self.tablaPaciente()
+
+    def camposPacientes(self): 
+
+        # Diseño de los label
+
+        self.lblNombre = tk.Label(self, text='Nombre: ')
+        self.lblNombre.config(font=('ARIAL', 15, 'bold'), bg='#CDD8FF')
+        self.lblNombre.grid(column=0, row=0, padx=10, pady=5)
+
+        self.lblApellidoPaterno = tk.Label(self, text='Apellidos Paterno:')
+        self.lblApellidoPaterno.config(font=('ARIAL', 15, 'bold'), bg='#CDD8FF')
+        self.lblApellidoPaterno.grid(column=0, row=1, padx=10, pady=5)
+
+        self.lblApellidoMaterno = tk.Label(self, text='Apellidos Materno:')
+        self.lblApellidoMaterno.config(font=('ARIAL', 15, 'bold'), bg='#CDD8FF')
+        self.lblApellidoMaterno.grid(column=0, row=2, padx=10, pady=5)
+
+        self.lblDui = tk.Label(self, text='DUI:')
+        self.lblDui.config(font=('ARIAL', 15, 'bold'), bg='#CDD8FF')
+        self.lblDui.grid(column=0, row=3, padx=10, pady=5)
+
+        self.lblFechaNac = tk.Label(self, text='Fecha de Nacimiento:')
+        self.lblFechaNac.config(font=('ARIAL', 15, 'bold'), bg='#CDD8FF')
+        self.lblFechaNac.grid(column=0, row=4, padx=10, pady=5)
+
+        self.lblEdad = tk.Label(self, text='Edad:')
+        self.lblEdad.config(font=('ARIAL', 15, 'bold'), bg='#CDD8FF')
+        self.lblEdad.grid(column=0, row=5, padx=10, pady=5)
+
+        self.lblAntecedentes = tk.Label(self, text='Antecedentes:')
+        self.lblAntecedentes.config(font=('ARIAL', 15, 'bold'), bg='#CDD8FF')
+        self.lblAntecedentes.grid(column=0, row=6, padx=10, pady=5)
+
+        self.lblCorreo = tk.Label(self, text='Correo Electronico:')
+        self.lblCorreo.config(font=('ARIAL', 15, 'bold'), bg='#CDD8FF')
+        self.lblCorreo.grid(column=0, row=7, padx=10, pady=5)
+
+        self.lblTelefono = tk.Label(self, text='Nº Telefono:')
+        self.lblTelefono.config(font=('ARIAL', 15, 'bold'), bg='#CDD8FF')
+        self.lblTelefono.grid(column=0, row=8, padx=10, pady=5)
+
+        # Diseño de las entradas de texto (Entry)
+
+        self.svNombre = tk.StringVar()
+        self.txtNombre = tk.Entry(self, textvariable=self.svNombre)
+        self.txtNombre.config(width=50, font=('ARIAL', 15))
+        self.txtNombre.grid(column=1, row=0, padx=10, pady=5, columnspan=2)
+
+        self.svApellidoPaterno = tk.StringVar()
+        self.txtApellidoPaterno = tk.Entry(self, textvariable=self.svApellidoPaterno)
+        self.txtApellidoPaterno.config(width=50, font=('Arial', 15))
+        self.txtApellidoPaterno.grid(column=1, row=1, padx=10, pady=5, columnspan=2)
+
+        self.svApellidoMaterno = tk.StringVar()
+        self.txtApellidoMaterno = tk.Entry(self, textvariable=self.svApellidoMaterno)
+        self.txtApellidoMaterno.config(width=50, font=('Arial', 15))
+        self.txtApellidoMaterno.grid(column=1, row=2, padx=10, pady=5, columnspan=2)
+
+        self.svDui = tk.StringVar()
+        self.txtDui = tk.Entry(self, textvariable=self.svDui)
+        self.txtDui.config(width=50, font=('Arial', 15))
+        self.txtDui.grid(column=1, row=3, padx=10, pady=5, columnspan=2)
+
+        self.svFechaNacimiento = tk.StringVar()
+        self.txtFechaNac = tk.Entry(self, textvariable=self.svFechaNacimiento)
+        self.txtFechaNac.config(width=50, font=('Arial', 15))
+        self.txtFechaNac.grid(column=1, row=4, padx=10, pady=5, columnspan=2)
+
+        self.svEdad = tk.StringVar()
+        self.txtEdad = tk.Entry(self, textvariable=self.svEdad)
+        self.txtEdad.config(width=50, font=('Arial', 15))
+        self.txtEdad.grid(column=1, row=5, padx=10, pady=5, columnspan=2)
+
+        self.svAntecedentes = tk.StringVar()
+        self.txtAntecedenetes = tk.Entry(self, textvariable=self.svAntecedentes)
+        self.txtAntecedenetes.config(width=50, font=('Arial', 15))
+        self.txtAntecedenetes.grid(column=1, row=6, padx=10, pady=5, columnspan=2)
+
+        self.svCorreo = tk.StringVar()
+        self.txtCorreo = tk.Entry(self, textvariable=self.svCorreo)
+        self.txtCorreo.config(width=50, font=('Arial', 15))
+        self.txtCorreo.grid(column=1, row=7, padx=10, pady=5, columnspan=2)
+
+        self.svTelefono = tk.StringVar()
+        self.txtTelefono = tk.Entry(self, textvariable=self.svTelefono)
+        self.txtTelefono.config(width=50, font=('Arial', 15))
+        self.txtTelefono.grid(column=1, row=8, padx=10, pady=5, columnspan=2)
+
+        # Botones
+        self.btnNuevo = tk.Button(self, text='Nuevo', command=self.habilitar)
+        self.btnNuevo.config(width=20, font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#158645',
+                             cursor='hand2', activebackground='#35BD6F')
+        self.btnNuevo.grid(column=0, row=9, padx=10, pady=5)
+
+        self.btnGuardar = tk.Button(self, text='Guardar', command=self.guardarPaciente)
+        self.btnGuardar.config(width=20, font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#000000',
+                               cursor='hand2', activebackground='#5F5F5F')
+        self.btnGuardar.grid(column=1, row=9, padx=10, pady=5)
+
+        self.btnCancelar = tk.Button(self, text='Cancelar', command=self.deshabilitar)
+        self.btnCancelar.config(width=20, font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#B00000',
+                                cursor='hand2', activebackground='#D27C7C')
+        self.btnCancelar.grid(column=2, row=9, padx=10, pady=5)
+
+        # BUSCAR PACIENTE YA SEA CON EL DUI O APELLIDO
+        self.lblBuscarDUI = tk.Label(self, text='Buscar por DUI: ')
+        self.lblBuscarDUI.config(font=('ARIAL', 15, 'bold'), bg='#CDD8FF')
+        self.lblBuscarDUI.grid(column=3, row=0, padx=10, pady=5)
+        
+        self.lblbuscarApellido = tk.Label(self, text='Buscar por Apellido: ')
+        self.lblbuscarApellido.config(font=('ARIAL', 15, 'bold'), bg='#CDD8FF')
+        self.lblbuscarApellido.grid(column=3, row=1, padx=10, pady=5)
+
+        # Texbox del buscador
+        self.svBuscarDui = tk.StringVar()
+        self.txtBuscarDui = tk.Entry(self, textvariable=self.svBuscarDui)
+        self.txtBuscarDui.config(width=15, font=('ARIAL', 15))
+        self.txtBuscarDui.grid(column=4, row=0, padx=10, pady=5, columnspan=2)
+
+        self.svBuscarApellido = tk.StringVar()
+        self.txtBuscarApellido = tk.Entry(self, textvariable=self.svBuscarApellido) 
+        self.txtBuscarApellido.config(width=10, font=('ARIAL', 15))
+        self.txtBuscarApellido.grid(column=4, row=1, padx=10, pady=5, columnspan=2)
+
+        # Boton de busqueda 
+        self.btnBuscarCondicion = tk.Button(self, text='Buscar', command=self.buscarCondicion)
+        self.btnBuscarCondicion.config(width=12, font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#00396F',
+                                cursor='hand2', activebackground='#5B8DBD')
+        self.btnBuscarCondicion.grid(column=3, row=2, padx=10, pady=5, columnspan=1)
+
+        # Boton de limpiar busqueda 
+        self.btnLimpiar = tk.Button(self, text='Calendario', command=self.limpiarBuscador)
+        self.btnLimpiar.config(width=12, font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#120061',
+                                cursor='hand2', activebackground='#7C6DC1')
+        self.btnLimpiar.grid(column=4, row=2, padx=10, pady=5, columnspan=1)
+
+        # Boton de Calendario
+        self.btnCalendario = tk.Button(self, text='Calendario', command=self.vistaCalendario )
+        self.btnCalendario.config(width=12, font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#53005B',
+                                cursor='hand2', activebackground='#C774CF')
+        self.btnCalendario.grid(column=3, row=4, padx=10, pady=5, columnspan=1)
+
+# Funcion de vista de calendario usando el boton 
+    def vistaCalendario(self):
+        # Creando la ventana secundaria del calendario
+        self.calendario = Toplevel(self)
+        self.calendario.title("FECHA DE NACIMIENTO")
+        self.calendario.resizable(0, 0)
+        self.calendario.config(bg='#CDD8FF')
+
+        # Creando el calendario
+        self.calendar = tc.Calendar(
+            self.calendario,
+            selectmode='day',
+            year=1990,
+            month=1,
+            day=1,
+            locale='es_US',
+            background='#777777',
+            foreground='#FFFFFF',
+            headersbackground='#B6DDFE',
+            cursor='hand2',
+            date_pattern='dd-mm-Y'
+        )
+        self.calendar.grid(row=0, column=0, padx=20, pady=20)
+
+        # Enlace directo al evento de clic sobre la fecha
+        self.calendar.bind("<<CalendarSelected>>", self.seleccionar_fecha)
+
+# Enviar fecha seleccionada desde la ventana de calendario al textbox de fecha de nacimiento
+    def seleccionar_fecha(self, event):
+        # Obtener fecha seleccionada
+        fecha_str = self.calendar.get_date()
+        self.svFechaNacimiento.set(fecha_str)
+
+        # Calcular edad inmediatamente
+        self.calcularEdad(fecha_str)
+
+        # Cerrar la ventana del calendario
+        self.calendario.destroy()
+
+# Calculando la edad por medio de la fecha seleccionada
+    def calcularEdad(self, fecha_str):
+        try:
+            fecha_nacimiento = datetime.strptime(fecha_str, "%d-%m-%Y").date()
+            fecha_actual = date.today()
+            edad = fecha_actual.year - fecha_nacimiento.year - (
+                (fecha_actual.month, fecha_actual.day) < (fecha_nacimiento.month, fecha_nacimiento.day)
+            )
+            self.svEdad.set(str(edad))
+        except ValueError:
+            self.svEdad.set("Error")
+
+# Funcion para buscar al paciente por medio del Apellido Paterno o DUI
+    def buscarCondicion(self):
+        condiciones = []
+
+        # Captura de valores y limpieza de espacios
+        dui = self.svBuscarDui.get().strip()
+        apellido = self.svBuscarApellido.get().strip()
+
+        # Validación de campos vacíos
+        if not dui and not apellido:
+            messagebox.showwarning("Campos vacíos", "Por favor ingrese el DUI o el Apellido para realizar la búsqueda.")
+            return  # Detiene la ejecución si no hay datos
+
+        # Construcción de la condición WHERE
+        if dui:
+            condiciones.append(f"dui = '{dui}'")
+        if apellido:
+            condiciones.append(f"apellidoPaterno LIKE '{apellido}%'")
+
+        where = "WHERE " + " AND ".join(condiciones) + " AND activo = 1"
+
+        # Obtener resultados
+        self.listarPersona = listarCondicion(where)
+
+        # Validación de resultados vacíos
+        if not self.listarPersona:
+            messagebox.showinfo("Sin resultados", "No se encontró ningún paciente con los datos proporcionados.")
+            
+            # Limpia la tabla si se desea eliminar resultados anteriores
+            if hasattr(self, 'tabla'):
+                for item in self.tabla.get_children():
+                    self.tabla.delete(item)
+            return
+
+        # Mostrar los resultados en la tabla
+        self.tablaPaciente(where)
+
+# Funcion para limpiar los textbox de busqueda 
+    def limpiarBuscador(self):
+        self.svBuscarDui.set('')
+        self.svBuscarApellido.set('')
+
+        # Mostrar los resultados en la tabla
+        self.tablaPaciente()
+
+# Funcion para guardar Paciente llamada de PacienteDAO
+    def guardarPaciente(self):
+        persona = Persona(
+            self.svNombre.get(),
+            self.svApellidoPaterno.get(),
+            self.svApellidoMaterno.get(),
+            self.svDui.get(),
+            self.svFechaNacimiento.get(),
+            self.svEdad.get(),
+            self.svAntecedentes.get(),
+            self.svCorreo.get(),
+            self.svTelefono.get(),
+        )
+        if self.idPersona == None:
+            guardarDatoPaciente(persona)
+        else:
+            editarDatoPaciente(persona, self.idPersona)
+
+        self.deshabilitar()
+        self.tablaPaciente()
+
+# Deabilita la los textbox y los botones
+    def deshabilitar(self):
+        self.idPersona = None
+        self.svNombre.set('')
+        self.svApellidoPaterno.set('')
+        self.svApellidoMaterno.set('')
+        self.svDui.set('')
+        self.svFechaNacimiento.set('')
+        self.svEdad.set('')
+        self.svAntecedentes.set('')
+        self.svCorreo.set('')
+        self.svTelefono.set('')
+
+        self.txtNombre.config(state='disabled')
+        self.txtApellidoPaterno.config(state='disabled')
+        self.txtApellidoMaterno.config(state='disabled')
+        self.txtDui.config(state='disabled')
+        self.txtFechaNac.config(state='disabled')
+        self.txtEdad.config(state='disabled')
+        self.txtAntecedenetes.config(state='disabled')
+        self.txtCorreo.config(state='disabled')
+        self.txtTelefono.config(state='disabled')
+
+        self.btnGuardar.config(state='disabled')
+        self.btnCancelar.config(state='disabled')
+        self.btnCalendario.config(state='disabled')
+
+# Habilita los textbox y botones
+    def habilitar(self):
+        #self.idPersona = None
+        self.svNombre.set('')
+        self.svApellidoPaterno.set('')
+        self.svApellidoMaterno.set('')
+        self.svDui.set('')
+        self.svFechaNacimiento.set('')
+        self.svEdad.set('')
+        self.svAntecedentes.set('')
+        self.svCorreo.set('')
+        self.svTelefono.set('')
+
+        self.txtNombre.config(state='normal')
+        self.txtApellidoPaterno.config(state='normal')
+        self.txtApellidoMaterno.config(state='normal')
+        self.txtDui.config(state='normal')
+        self.txtFechaNac.config(state='normal')
+        self.txtEdad.config(state='normal')
+        self.txtAntecedenetes.config(state='normal')
+        self.txtCorreo.config(state='normal')
+        self.txtTelefono.config(state='normal')
+
+        self.btnGuardar.config(state='normal')
+        self.btnCancelar.config(state='normal')
+        self.btnCalendario.config(state='normal')
+
+# Diseño de la tabla para muestra de datos
+    def tablaPaciente(self, where=""):
+        # Obtener los datos
+        self.listarPersona = listarCondicion(where) if where else listar()
+
+        # Crear tabla si no existe
+        if not hasattr(self, 'tabla'):
+            self.tabla = ttk.Treeview(self, column=('Nombre', 'Ape Paterno', 'Ape Materno', 'Dui', 'Fecha Nacim', 'Edad', 'Antecedentes', 'Correo', 'Telefono'))
+            self.tabla.grid(column=0, row=10, columnspan=10, sticky='nsew')
+            self.scroll = ttk.Scrollbar(self, orient='vertical', command=self.tabla.yview)
+            self.scroll.grid(row=10, column=11, sticky='nse')
+            self.tabla.configure(yscrollcommand=self.scroll.set)
+            self.tabla.tag_configure('evenrow', background='#C5EAFE')
+            self.tabla.heading('#0', text='ID')
+            self.tabla.heading('#1', text='Nombre')
+            self.tabla.heading('#2', text='AP. Paterno')
+            self.tabla.heading('#3', text='AP. Materno')
+            self.tabla.heading('#4', text='DUI')
+            self.tabla.heading('#5', text='F. Nacimiento')
+            self.tabla.heading('#6', text='Edad')
+            self.tabla.heading('#7', text='Antecedentes')
+            self.tabla.heading('#8', text='Correo')
+            self.tabla.heading('#9', text='Telefono')
+            self.tabla.column("#0", anchor=W, width=50)
+            self.tabla.column("#1", anchor=W, width=110)
+            self.tabla.column("#2", anchor=W, width=110)
+            self.tabla.column("#3", anchor=W, width=110)
+            self.tabla.column("#4", anchor=W, width=80)
+            self.tabla.column("#5", anchor=W, width=90)
+            self.tabla.column("#6", anchor=W, width=50)
+            self.tabla.column("#7", anchor=W, width=150)
+            self.tabla.column("#8", anchor=W, width=150)
+            self.tabla.column("#9", anchor=W, width=85)
+
+        # Eliminar todos los registros previos
+        for item in self.tabla.get_children():
+            self.tabla.delete(item)
+
+        # Insertar nuevos registros
+        for p in self.listarPersona:
+            self.tabla.insert('', 'end', text=p[0], values=(p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9]), tags=('evenrow'))
+
+                
+            self.btnEditarPaciente = tk.Button(self, text='Editar Paciente', command=self.editarPaciente)
+            self.btnEditarPaciente.config(width=20, font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#1E0075', activebackground='#9379E0', cursor='hand2')
+            self.btnEditarPaciente.grid(row=11, column=0, padx=10, pady=5)
+
+            self.btnEliminarPaciente = tk.Button(self, text='Eliminar Paciente', command=self.eliminarDatoPaciente)
+            self.btnEliminarPaciente.config(width=20, font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#8A0000', activebackground='#D58A8A', cursor='hand2')
+            self.btnEliminarPaciente.grid(row=11, column=1, padx=10, pady=5)
+
+            self.btnHistorialPaciente = tk.Button(self, text='Historial Paciente')
+            self.btnHistorialPaciente.config(width=20, font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#007C79', activebackground='#99F2F0', cursor='hand2')
+            self.btnHistorialPaciente.grid(row=11, column=2, padx=10, pady=5)
+
+            self.btnSalir = tk.Button(self, text='Salir', command=self.root.destroy)
+            self.btnSalir.config(width=20, font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#000000', activebackground='#5E5E5E', cursor='hand2')
+            self.btnSalir.grid(row=11, column=4, padx=10, pady=5)
+
+
+# Funcion para editar y seleccinar paciente de la tabla de muestra de datos llamado de PacienteDAO
+    def editarPaciente(self):
+        try:
+            seleccion = self.tabla.selection()
+
+            # Validación de selección
+            if not seleccion:
+                messagebox.showwarning('Advertencia', 'Por favor, seleccione un paciente para editar.')
+                return
+
+            # Obtener ID y datos del paciente seleccionado
+            self.idPersona = self.tabla.item(seleccion)['text']
+            self.nombrePaciente = self.tabla.item(seleccion)['values'][0]
+            self.apellidoPaternoPaciente = self.tabla.item(seleccion)['values'][1]
+            self.apellidoMaternoPaciente = self.tabla.item(seleccion)['values'][2]
+            self.duiPaciente = self.tabla.item(seleccion)['values'][3]
+            self.fechaNacimientoPaciente = self.tabla.item(seleccion)['values'][4]
+            self.edadPaciente = self.tabla.item(seleccion)['values'][5]
+            self.antecedentesPaciente = self.tabla.item(seleccion)['values'][6]
+            self.correoPaciente = self.tabla.item(seleccion)['values'][7]
+            self.telefonoPaciente = self.tabla.item(seleccion)['values'][8]
+
+            self.habilitar()
+
+            self.txtNombre.insert(0, self.nombrePaciente)
+            self.txtApellidoPaterno.insert(0, self.apellidoPaternoPaciente)
+            self.txtApellidoMaterno.insert(0, self.apellidoMaternoPaciente)
+            self.txtDui.insert(0, self.duiPaciente)
+            self.txtFechaNac.insert(0, self.fechaNacimientoPaciente)
+            self.txtEdad.insert(0, self.edadPaciente)
+            self.txtAntecedenetes.insert(0, self.antecedentesPaciente)
+            self.txtCorreo.insert(0, self.correoPaciente)
+            self.txtTelefono.insert(0, self.telefonoPaciente)
+
+        except Exception as e:
+            messagebox.showerror('Error', f'Error al editar el paciente: {e}')
+
+# Funcion de eliminar datos de paciente llamado de PacienteDAO
+    def eliminarDatoPaciente(self):
+        try:
+            seleccion = self.tabla.selection()
+
+            # Validar si se ha seleccionado un registro
+            if not seleccion:
+                messagebox.showwarning('Advertencia', 'Por favor, seleccione un paciente para eliminar.')
+                return
+
+            # Obtener el ID del paciente desde el ítem seleccionado
+            self.idPersona = self.tabla.item(seleccion[0])['text']
+
+            # Confirmación de eliminación (opcional pero recomendable)
+            confirmar = messagebox.askyesno('Confirmar', '¿Está seguro que desea eliminar este paciente?')
+            if confirmar:
+                eliminarPaciente(self.idPersona)
+                self.tablaPaciente()  # Actualizar tabla
+                self.idPersona = None
+                messagebox.showinfo('Éxito', 'Paciente eliminado correctamente.')
+        except Exception as e:
+            messagebox.showerror('Error', f'Error al eliminar el paciente: {e}')
