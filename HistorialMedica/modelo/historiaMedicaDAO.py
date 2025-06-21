@@ -51,7 +51,7 @@ def eliminarHistorial(idHistorialMedica):
         conexion.cerrarConexion()
 
 # Metodo para editar la informacion de un historial de pacientes 
-def editarHistorial(fechaHistorial, motivo, examenAuxiliar, tratamiento, detalle, idHistoriaMedica):
+def editarHistorial(fechaHistorial, motivo, examenAuxiliar, tratamiento, detalle, idHistorialMedica):
     conexion = ConexionBD()
     sql_editar = f"""UPDATE historialMedica 
     SET 
@@ -61,12 +61,14 @@ def editarHistorial(fechaHistorial, motivo, examenAuxiliar, tratamiento, detalle
         tratamiento = '{tratamiento}', 
         detalle = '{detalle}'
     WHERE 
-        idHistoriaMedica = '{idHistoriaMedica}'"""
+        idHistorialMedica = '{idHistorialMedica}'"""
     try:
         conexion.cursor.execute(sql_editar)
-        conexion.cerrarConexion()
+        conexion.conexion.commit()
     except Exception as e:
         messagebox.showerror('Error', f'Error al Modificar el Historial: {e}')
+    finally:
+        conexion.cerrarConexion()
 
 
 # Clase que representa el registro de una historia médica de un paciente

@@ -4,7 +4,7 @@ from tkinter import *
 from tkinter import Button, ttk, scrolledtext, Toplevel, LabelFrame
 from tkinter import messagebox
 from modelo.pacienteDAO import Persona, editarDatoPaciente, guardarDatoPaciente, listar, listarCondicion, eliminarPaciente
-from modelo.historiaMedicaDAO import eliminarHistorial, historiaMedica, guardarHistorial, listarHistorial
+from modelo.historiaMedicaDAO import eliminarHistorial, historiaMedica, guardarHistorial, listarHistorial, editarHistorial
 import tkcalendar as tc
 from tkcalendar import *
 from tkcalendar import Calendar
@@ -154,7 +154,7 @@ class Frame(tk.Frame):
         self.btnBuscarCondicion.grid(column=3, row=2, padx=10, pady=5, columnspan=1)
 
         # Boton de limpiar busqueda 
-        self.btnLimpiar = tk.Button(self, text='Calendario', command=self.limpiarBuscador)
+        self.btnLimpiar = tk.Button(self, text='Limpiar', command=self.limpiarBuscador)
         self.btnLimpiar.config(width=12, font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#120061',
                                 cursor='hand2', activebackground='#7C6DC1')
         self.btnLimpiar.grid(column=4, row=2, padx=10, pady=5, columnspan=1)
@@ -302,9 +302,12 @@ class Frame(tk.Frame):
             messagebox.showerror("Error", "Correo electrónico inválido.")
             return
 
-        if not re.match(r'^[267]{1}[0-9]{3}-?[0-9]{4}$', telefono):
-            messagebox.showerror("Error", "Número de teléfono inválido. Debe tener 8 dígitos y puede incluir un guion (####-####), comenzando con 2, 6 o 7.")
+        import re
+
+        if not re.match(r'^\d{4}-?\d{4}$', telefono):
+            messagebox.showerror("Error", "Número de teléfono inválido. Debe tener 8 dígitos y puede incluir un guion (####-####)")
             return
+
 
         # Creación del objeto y almacenamiento
         persona = Persona(
@@ -763,7 +766,7 @@ class Frame(tk.Frame):
                 return
 
             # Obtener datos seleccionados
-            self.idHistoriaMedica = self.tablaHistorial.item(seleccion)['text']
+            self.idHistorialMedica = self.tablaHistorial.item(seleccion)['text']
             fecha = self.tablaHistorial.item(seleccion)['values'][1]
             motivo = self.tablaHistorial.item(seleccion)['values'][2]
             examen = self.tablaHistorial.item(seleccion)['values'][3]
@@ -776,56 +779,100 @@ class Frame(tk.Frame):
             self.topEditarHistorial.config(bg='#CDD8FF')
 
             # FRAME DE DATOS
-            self.frameEditarHistorial = tk.LabelFrame(self.topEditarHistorial, text='Editar Datos del Historial',
-                                                    font=('ARIAL', 14, 'bold'), bg='#CDD8FF')
-            self.frameEditarHistorial.pack(fill="both", expand="yes", pady=20, padx=20)
+            self.frameDatosHistorial = tk.LabelFrame(self.topEditarHistorial, text="Datos del Historial", font=('ARIAL', 12, 'bold'), bg='#CDD8FF')
+            self.frameDatosHistorial.pack(fill="both", expand="yes", padx=20, pady=10)
 
-            # MOTIVO
-            tk.Label(self.frameEditarHistorial, text='Motivo de la Historia:', font=('ARIAL', 13, 'bold'), bg='#CDD8FF')\
-                .grid(row=0, column=0, padx=10, pady=8, sticky="e")
-            self.varMotivoEditar = tk.StringVar(value=motivo)
-            tk.Entry(self.frameEditarHistorial, textvariable=self.varMotivoEditar, font=('ARIAL', 13), width=40)\
-                .grid(row=0, column=1, padx=10, pady=8)
+            self.lblMotivoHistoriaEdicion = tk.Label(self.frameDatosHistorial, text='Motivo de la Historia:', font=('ARIAL', 13, 'bold'), bg='#CDD8FF')
+            self.lblMotivoHistoriaEdicion.grid(row=0, column=0, padx=10, pady=8, sticky="e")
 
-            # EXAMEN AUXILIAR
-            tk.Label(self.frameEditarHistorial, text='Examen Auxiliar:', font=('ARIAL', 13, 'bold'), bg='#CDD8FF')\
-                .grid(row=1, column=0, padx=10, pady=8, sticky="e")
-            self.varExamenEditar = tk.StringVar(value=examen)
-            tk.Entry(self.frameEditarHistorial, textvariable=self.varExamenEditar, font=('ARIAL', 13), width=40)\
-                .grid(row=1, column=1, padx=10, pady=8)
+            self.lblExamenAuxiliarEdicion = tk.Label(self.frameDatosHistorial, text='Examen Auxiliar:', font=('ARIAL', 13, 'bold'), bg='#CDD8FF')
+            self.lblExamenAuxiliarEdicion.grid(row=1, column=0, padx=10, pady=8, sticky="e")
 
-            # TRATAMIENTO
-            tk.Label(self.frameEditarHistorial, text='Tratamiento:', font=('ARIAL', 13, 'bold'), bg='#CDD8FF')\
-                .grid(row=2, column=0, padx=10, pady=8, sticky="e")
-            self.varTratamientoEditar = tk.StringVar(value=tratamiento)
-            tk.Entry(self.frameEditarHistorial, textvariable=self.varTratamientoEditar, font=('ARIAL', 13), width=40)\
-                .grid(row=2, column=1, padx=10, pady=8)
+            self.lblTratamientoEdicion = tk.Label(self.frameDatosHistorial, text='Tratamiento:', font=('ARIAL', 13, 'bold'), bg='#CDD8FF')
+            self.lblTratamientoEdicion.grid(row=2, column=0, padx=10, pady=8, sticky="e")
 
-            # DETALLE
-            tk.Label(self.frameEditarHistorial, text='Detalle del Historial:', font=('ARIAL', 13, 'bold'), bg='#CDD8FF')\
-                .grid(row=3, column=0, padx=10, pady=8, sticky="ne")
-            self.txtDetalleEditar = tk.Text(self.frameEditarHistorial, font=('ARIAL', 13), width=38, height=5)
-            self.txtDetalleEditar.grid(row=3, column=1, padx=10, pady=8)
-            self.txtDetalleEditar.insert('1.0', detalle)
+            self.lblDetalleHistoriaEdicion = tk.Label(self.frameDatosHistorial, text='Detalle del Historial:', font=('ARIAL', 13, 'bold'), bg='#CDD8FF')
+            self.lblDetalleHistoriaEdicion.grid(row=3, column=0, padx=10, pady=8, sticky="ne")
 
-            # FECHA
-            self.frameFechaEditar = tk.LabelFrame(self.topEditarHistorial, bg='#CDD8FF')
-            self.frameFechaEditar.pack(fill="both", expand="yes", padx=20, pady=10)
+            self.svMotivoHistorialEdicion = tk.StringVar()
+            self.entryMotivoHistoriaEdicion = tk.Entry(self.frameDatosHistorial, textvariable=self.svMotivoHistorialEdicion, font=('ARIAL', 13), width=40)
+            self.entryMotivoHistoriaEdicion.grid(row=0, column=1, padx=10, pady=8)
 
-            tk.Label(self.frameFechaEditar, text='Fecha y Hora:', font=('ARIAL', 12), bg='#CDD8FF')\
-                .grid(row=0, column=0, padx=5, pady=3)
-            self.varFechaEditar = tk.StringVar(value=fecha)
-            tk.Entry(self.frameFechaEditar, textvariable=self.varFechaEditar, font=('ARIAL', 15), width=25)\
-                .grid(row=0, column=1, padx=5, pady=3)
+            self.svExamenAuxiliarEdicion = tk.StringVar()
+            self.entryExamenAuxiliarEdicion = tk.Entry(self.frameDatosHistorial, textvariable=self.svExamenAuxiliarEdicion, font=('ARIAL', 13), width=40)
+            self.entryExamenAuxiliarEdicion.grid(row=1, column=1, padx=10, pady=8)
 
-            # BOTONES
-            tk.Button(self.frameEditarHistorial, text='Guardar Cambios',
-                    font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#000992', cursor='hand2', activebackground='#4E56C6')\
-                .grid(row=4, column=0, padx=10, pady=5, sticky="e")
+            self.svTratamientoEdicion = tk.StringVar()
+            self.entryTratamientoEdicion = tk.Entry(self.frameDatosHistorial, textvariable=self.svTratamientoEdicion, font=('ARIAL', 13), width=40)
+            self.entryTratamientoEdicion.grid(row=2, column=1, padx=10, pady=8)
 
-            tk.Button(self.frameEditarHistorial, text='Salir', command=self.topEditarHistorial.destroy,
-                    font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#000000', cursor='hand2', activebackground='#646464')\
-                .grid(row=4, column=1, padx=10, pady=5, sticky="w")
+            self.entryDetalleHistoriaEdicion = tk.Text(self.frameDatosHistorial, font=('ARIAL', 13), width=38, height=5)
+            self.entryDetalleHistoriaEdicion.grid(row=3, column=1, padx=10, pady=8)
+
+            # Asignar valores previos a los campos
+            self.svMotivoHistorialEdicion.set(motivo)
+            self.svExamenAuxiliarEdicion.set(examen)
+            self.svTratamientoEdicion.set(tratamiento)
+            self.entryDetalleHistoriaEdicion.insert("1.0", detalle)
+
+            # Frame para fecha
+            self.frameFechaHistoriaEdicion = tk.LabelFrame(self.topEditarHistorial, bg='#CDD8FF')
+            self.frameFechaHistoriaEdicion.pack(fill="both", expand="yes", padx=20, pady=10)
+
+            self.lblFechaHistoriaEdicion = tk.Label(self.frameFechaHistoriaEdicion, text='Fecha y Hora', width=20, font=('ARIAL', 12), bg='#CDD8FF')
+            self.lblFechaHistoriaEdicion.grid(row=0, column=0, padx=5, pady=3)
+
+            self.svFechaHistoriaEdicion = tk.StringVar()
+            self.entryFechaHistoriaEdicion = tk.Entry(self.frameFechaHistoriaEdicion, textvariable=self.svFechaHistoriaEdicion)
+            self.entryFechaHistoriaEdicion.config(width=25, font=('ARIAL', 15))
+            self.entryFechaHistoriaEdicion.grid(row=0, column=1, padx=5, pady=3)
+
+            self.svFechaHistoriaEdicion.set(datetime.today().strftime('%d-%m-%Y %H:%M'))
+
+            # Botón para editar (sin lógica adicional)
+            self.btnEdicionHistorial = tk.Button(self.frameDatosHistorial, text='Editar Historial', command=self.guardarEdicionHistorial)
+            self.btnEdicionHistorial.config(font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#000992', cursor='hand2', activebackground='#4E56C6')
+            self.btnEdicionHistorial.grid(row=4, column=0, padx=10, pady=5, sticky="e")
+
+            # Botón para salir
+            self.btnSalirHistoria = tk.Button(self.frameDatosHistorial, text='Salir', command=self.topEditarHistorial.destroy)
+            self.btnSalirHistoria.config(font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#000000', cursor='hand2', activebackground='#646464')
+            self.btnSalirHistoria.grid(row=4, column=1, padx=10, pady=5, sticky="w")
 
         except Exception as e:
             messagebox.showerror('Error', f'Error al editar la Historia: {e}')
+
+# Funcion de edicion de historial usando el formulario de muestra de datos y el metodo de DAO
+    def guardarEdicionHistorial(self):
+        try:
+            fecha = self.svFechaHistoriaEdicion.get().strip()
+            motivo = self.svMotivoHistorialEdicion.get().strip()
+            examen = self.svExamenAuxiliarEdicion.get().strip()
+            tratamiento = self.svTratamientoEdicion.get().strip()
+            detalle = self.entryDetalleHistoriaEdicion.get("1.0", "end-1c").strip()
+
+            # Validación de campos vacíos
+            if not fecha or not motivo or not examen or not tratamiento or not detalle:
+                messagebox.showwarning("Campos Vacíos", "Todos los campos deben estar llenos antes de guardar los cambios.")
+                return
+
+            # Confirmación de edición
+            confirmar = messagebox.askyesno("Confirmar edición", "¿Está seguro que desea modificar este historial?")
+            if not confirmar:
+                return  # No hace nada si el usuario cancela
+
+            # Guardado mediante DAO
+            editarHistorial(
+                fechaHistorial=fecha,
+                motivo=motivo,
+                examenAuxiliar=examen,
+                tratamiento=tratamiento,
+                detalle=detalle,
+                idHistorialMedica=self.idHistorialMedica
+            )
+
+            messagebox.showinfo("Éxito", "Historial modificado correctamente.")
+            self.topEditarHistorial.destroy()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo editar el historial: {e}")
