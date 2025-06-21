@@ -1,9 +1,10 @@
+import re
 import tkinter as tk
 from tkinter import *
-from tkinter import Button, ttk, scrolledtext, Toplevel
+from tkinter import Button, ttk, scrolledtext, Toplevel, LabelFrame
 from tkinter import messagebox
 from modelo.pacienteDAO import Persona, editarDatoPaciente, guardarDatoPaciente, listar, listarCondicion, eliminarPaciente
-from modelo.historiaMedicaDAO import historiaMedica, guardarHistorial, listarHistorial
+from modelo.historiaMedicaDAO import eliminarHistorial, historiaMedica, guardarHistorial, listarHistorial
 import tkcalendar as tc
 from tkcalendar import *
 from tkcalendar import Calendar
@@ -19,6 +20,8 @@ class Frame(tk.Frame):
         self.idPersona = None
         self.camposPacientes() 
         self.idPersona = None
+        self.idPersonaHistoria = None
+        self.idHistoriaMedica = None 
         self.deshabilitar()
         self.tablaPaciente()
 
@@ -260,21 +263,68 @@ class Frame(tk.Frame):
 
 # Funcion para guardar Paciente llamada de PacienteDAO
     def guardarPaciente(self):
+        # Captura de datos desde la interfaz
+        nombre = self.svNombre.get().strip()
+        apellido_paterno = self.svApellidoPaterno.get().strip()
+        apellido_materno = self.svApellidoMaterno.get().strip()
+        dui = self.svDui.get().strip()
+        fecha_nacimiento = self.svFechaNacimiento.get().strip()
+        edad = self.svEdad.get().strip()
+        antecedentes = self.svAntecedentes.get().strip()
+        correo = self.svCorreo.get().strip()
+        telefono = self.svTelefono.get().strip()
+
+        # -------------------------------
+        # Validaciones
+        # -------------------------------
+
+        if not nombre or not apellido_paterno or not apellido_materno:
+            messagebox.showwarning("Validación", "Nombre y apellidos son obligatorios.")
+            return
+
+        if not re.match(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$', nombre):
+            messagebox.showerror("Error", "El nombre solo debe contener letras.")
+            return
+
+        if not re.match(r'^[0-9]{8}-[0-9]$', dui):
+            messagebox.showerror("Error", "El formato del DUI debe ser ########-#.")
+            return
+
+        if not fecha_nacimiento:
+            messagebox.showwarning("Validación", "La fecha de nacimiento es obligatoria.")
+            return
+
+        if not edad:
+            messagebox.showwarning("Validación", "El campo de edad no puede estar vacío.")
+            return
+
+        if correo and not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', correo):
+            messagebox.showerror("Error", "Correo electrónico inválido.")
+            return
+
+        if not re.match(r'^[267]{1}[0-9]{3}-?[0-9]{4}$', telefono):
+            messagebox.showerror("Error", "Número de teléfono inválido. Debe tener 8 dígitos y puede incluir un guion (####-####), comenzando con 2, 6 o 7.")
+            return
+
+        # Creación del objeto y almacenamiento
         persona = Persona(
-            self.svNombre.get(),
-            self.svApellidoPaterno.get(),
-            self.svApellidoMaterno.get(),
-            self.svDui.get(),
-            self.svFechaNacimiento.get(),
-            self.svEdad.get(),
-            self.svAntecedentes.get(),
-            self.svCorreo.get(),
-            self.svTelefono.get(),
+            nombre,
+            apellido_paterno,
+            apellido_materno,
+            dui,
+            fecha_nacimiento,
+            edad,
+            antecedentes,
+            correo,
+            telefono
         )
-        if self.idPersona == None:
+
+        if self.idPersona is None:
             guardarDatoPaciente(persona)
+            messagebox.showinfo("Éxito", "Paciente guardado exitosamente.")
         else:
             editarDatoPaciente(persona, self.idPersona)
+            messagebox.showinfo("Éxito", "Paciente actualizado exitosamente.")
 
         self.deshabilitar()
         self.tablaPaciente()
@@ -456,16 +506,19 @@ class Frame(tk.Frame):
 # Función de abrir la ventana del historial del paciente
     def historialMedica(self):
         try:
-            # Verifica si self.idPersona está vacío o None
-            if self.idPersona is None:
-                seleccion = self.tabla.selection()
-                if seleccion:
-                    self.idPersona = self.tabla.item(seleccion)['text']
-                else:
-                    messagebox.showwarning("Advertencia", "Debe seleccionar un paciente para ver su historial.")
-                    return
+            # Reiniciar ID para evitar usar uno previo
+            self.idPersona = None
 
-            # Verifica que el ID de persona sea válido
+            # Obtener la selección del paciente desde la tabla principal
+            seleccion = self.tabla.selection()
+            if seleccion:
+                self.idPersona = self.tabla.item(seleccion)['text']
+                self.idPersonaHistoria = self.idPersona
+            else:
+                messagebox.showwarning("Advertencia", "Debe seleccionar un paciente para ver su historial.")
+                return
+
+            # Validar que el ID del paciente sea numérico y positivo
             try:
                 idPersona = int(self.idPersona)
                 if idPersona <= 0:
@@ -474,16 +527,16 @@ class Frame(tk.Frame):
                 messagebox.showerror("Error", "El ID del paciente no es válido.")
                 return
 
-            # Ventana nueva para el historial médico
+            # Crear una nueva ventana para mostrar el historial médico
             self.topHistorialMedica = Toplevel()
-            self.topHistorialMedica.title('HISTORIAL MEDICO')
+            self.topHistorialMedica.title('HISTORIAL MÉDICO')
             self.topHistorialMedica.resizable(0, 0)
             self.topHistorialMedica.config(bg='#CDD8FF')
 
-            # Obtener datos del historial
+            # Obtener los datos del historial médico desde la base de datos
             self.listarHistorial = listarHistorial(idPersona)
 
-            # Crear tabla
+            # Crear el Treeview para mostrar los datos
             self.tablaHistorial = ttk.Treeview(
                 self.topHistorialMedica,
                 columns=('Apellido', 'Fecha Historia', 'Motivo', 'Examen Auxiliar', 'Tratamiento', 'Detalle')
@@ -499,7 +552,7 @@ class Frame(tk.Frame):
             self.scrollHistoria.grid(row=0, column=8, sticky='nse')
             self.tablaHistorial.configure(yscrollcommand=self.scrollHistoria.set)
 
-            # Encabezados
+            # Configurar encabezados
             self.tablaHistorial.heading('#0', text='ID')
             self.tablaHistorial.heading('#1', text='Apellidos')
             self.tablaHistorial.heading('#2', text='Fecha y Hora')
@@ -508,49 +561,78 @@ class Frame(tk.Frame):
             self.tablaHistorial.heading('#5', text='Tratamiento')
             self.tablaHistorial.heading('#6', text='Detalle')
 
-            # Configuración de columnas
+            # Configurar columnas
             self.tablaHistorial.column('#0', anchor=W, width=50)
             self.tablaHistorial.column('#1', anchor=W, width=100)
             self.tablaHistorial.column('#2', anchor=W, width=100)
             self.tablaHistorial.column('#3', anchor=W, width=120)
             self.tablaHistorial.column('#4', anchor=W, width=250)
             self.tablaHistorial.column('#5', anchor=W, width=200)
-            self.tablaHistorial.column('#6', anchor=W, width=500)
+            self.tablaHistorial.column('#6', anchor=W, width=200)
 
-            # Insertar registros
+            # Limpiar cualquier fila previa en el Treeview
+            for item in self.tablaHistorial.get_children():
+                self.tablaHistorial.delete(item)
+
+            # Insertar los datos del historial en el Treeview
             for p in self.listarHistorial:
                 self.tablaHistorial.insert('', 'end', text=p[0], values=(p[1], p[2], p[3], p[4], p[5], p[6]))
 
             # Botón: Agregar Historial
-            self.btnGuardarHistorial = tk.Button(self.topHistorialMedica, text='Agregar Historial', command=self.topAgregarHistoria)
-            self.btnGuardarHistorial.config(width=20, font=('ARIAL', 12, 'bold'),
-                                            fg='#DAD5D6', bg='#002771',
-                                            cursor='hand2', activebackground='#7198E0')
+            self.btnGuardarHistorial = tk.Button(
+                self.topHistorialMedica,
+                text='Agregar Historial',
+                command=self.topAgregarHistoria
+            )
+            self.btnGuardarHistorial.config(
+                width=20, font=('ARIAL', 12, 'bold'),
+                fg='#DAD5D6', bg='#002771',
+                cursor='hand2', activebackground='#7198E0'
+            )
             self.btnGuardarHistorial.grid(row=2, column=0, padx=10, pady=5)
 
             # Botón: Editar Historial
-            self.btnEditarHistorial = tk.Button(self.topHistorialMedica, text='Editar Historial')
-            self.btnEditarHistorial.config(width=20, font=('ARIAL', 12, 'bold'),
-                                        fg='#DAD5D6', bg='#3A005D',
-                                        cursor='hand2', activebackground='#B47CD6')
+            self.btnEditarHistorial = tk.Button(
+                self.topHistorialMedica,
+                text='Editar Historial',
+                command=self.editarHistorial
+            )
+            self.btnEditarHistorial.config(
+                width=20, font=('ARIAL', 12, 'bold'),
+                fg='#DAD5D6', bg='#3A005D',
+                cursor='hand2', activebackground='#B47CD6'
+            )
             self.btnEditarHistorial.grid(row=2, column=1, padx=10, pady=5)
 
             # Botón: Eliminar Historial
-            self.btnEliminarHistorial = tk.Button(self.topHistorialMedica, text='Eliminar Historial')
-            self.btnEliminarHistorial.config(width=20, font=('ARIAL', 12, 'bold'),
-                                            fg='#DAD5D6', bg='#890011',
-                                            cursor='hand2', activebackground='#DB939C')
+            self.btnEliminarHistorial = tk.Button(
+                self.topHistorialMedica,
+                text='Eliminar Historial',
+                command=self.eliminarHistorialMedico
+            )
+            self.btnEliminarHistorial.config(
+                width=20, font=('ARIAL', 12, 'bold'),
+                fg='#DAD5D6', bg='#890011',
+                cursor='hand2', activebackground='#DB939C'
+            )
             self.btnEliminarHistorial.grid(row=2, column=2, padx=10, pady=5)
 
             # Botón: Salir del Historial
-            self.btnSalirHistorial = tk.Button(self.topHistorialMedica, text='Salir del Historial', command=self.salirTop)
-            self.btnSalirHistorial.config(width=20, font=('ARIAL', 12, 'bold'),
-                                        fg='#DAD5D6', bg='#000000',
-                                        cursor='hand2', activebackground='#6F6F6F')
+            self.btnSalirHistorial = tk.Button(
+                self.topHistorialMedica,
+                text='Salir del Historial',
+                command=self.salirTop
+            )
+            self.btnSalirHistorial.config(
+                width=20, font=('ARIAL', 12, 'bold'),
+                fg='#DAD5D6', bg='#000000',
+                cursor='hand2', activebackground='#6F6F6F'
+            )
             self.btnSalirHistorial.grid(row=2, column=3, padx=10, pady=5)
 
         except Exception as e:
             messagebox.showerror("Error", f"Ocurrió un error inesperado: {e}")
+
 
 # Función para cerrar la ventana del historial
     def salirTop(self):
@@ -563,13 +645,8 @@ class Frame(tk.Frame):
         self.topAHistoria.resizable(0, 0)
         self.topAHistoria.config(bg='#CDD8FF')
 
-        # Frame principal del formulario
         self.frameDatosHistorial = tk.LabelFrame(self.topAHistoria, text='Datos del Historial', font=('ARIAL', 14, 'bold'), bg='#CDD8FF')
         self.frameDatosHistorial.pack(fill="both", expand="yes", pady=20, padx=20)
-
-        # ============
-        # ETIQUETAS
-        # ============
 
         self.lblMotivoHistoria = tk.Label(self.frameDatosHistorial, text='Motivo de la Historia:', font=('ARIAL', 13, 'bold'), bg='#CDD8FF')
         self.lblMotivoHistoria.grid(row=0, column=0, padx=10, pady=8, sticky="e")
@@ -583,10 +660,6 @@ class Frame(tk.Frame):
         self.lblDetalleHistoria = tk.Label(self.frameDatosHistorial, text='Detalle del Historial:', font=('ARIAL', 13, 'bold'), bg='#CDD8FF')
         self.lblDetalleHistoria.grid(row=3, column=0, padx=10, pady=8, sticky="ne")
 
-        # ============
-        # ENTRADAS
-        # ============
-
         self.svMotivoHistorial = tk.StringVar()
         self.entryMotivoHistoria = tk.Entry(self.frameDatosHistorial, textvariable=self.svMotivoHistorial, font=('ARIAL', 13), width=40)
         self.entryMotivoHistoria.grid(row=0, column=1, padx=10, pady=8)
@@ -599,16 +672,160 @@ class Frame(tk.Frame):
         self.entryTratamiento = tk.Entry(self.frameDatosHistorial, textvariable=self.svTratamiento, font=('ARIAL', 13), width=40)
         self.entryTratamiento.grid(row=2, column=1, padx=10, pady=8)
 
-        self.svDetalle = tk.StringVar()
         self.entryDetalleHistoria = tk.Text(self.frameDatosHistorial, font=('ARIAL', 13), width=38, height=5)
         self.entryDetalleHistoria.grid(row=3, column=1, padx=10, pady=8)
 
-        # ============
-        # FRAME 2
-        # ============
-
-        self.frameFechaHistoria = tk.LabelFrame(self.topAgregarHistoria)
-        self.frameFechaHistoria.config(bg='#CDD8FF')
+        # Frame para fecha
+        self.frameFechaHistoria = tk.LabelFrame(self.topAHistoria, bg='#CDD8FF')
         self.frameFechaHistoria.pack(fill="both", expand="yes", padx=20, pady=10)
 
-        
+        self.lblFechaHistoria  = tk.Label(self.frameFechaHistoria, text='Fecha y Hora', width=20, font=('ARIAL', 12), bg='#CDD8FF')
+        self.lblFechaHistoria.grid(row=0, column=0, padx=5, pady=3)
+
+        self.svFechaHistoria = tk.StringVar()
+        self.entryFechaHistoria = tk.Entry(self.frameFechaHistoria, textvariable=self.svFechaHistoria)
+        self.entryFechaHistoria.config(width=25, font=('ARIAL', 15))
+        self.entryFechaHistoria.grid(row=0, column=1, padx=5, pady=3)
+
+        self.svFechaHistoria.set(datetime.today().strftime('%d-%m-%y %H:%M'))
+
+        self.btnAgregarHistoria = tk.Button(self.frameDatosHistorial, text='Agregar Historial', command=self.agregarHistorialMedico)
+        self.btnAgregarHistoria.config(font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#000992', cursor='hand2', activebackground='#4E56C6')
+        self.btnAgregarHistoria.grid(row=4, column=0, padx=10, pady=5, sticky="e")
+
+        self.btnSalirHistoria = tk.Button(self.frameDatosHistorial, text='Salir', command=self.topAHistoria.destroy)
+        self.btnSalirHistoria.config(font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#000000', cursor='hand2', activebackground='#646464')
+        self.btnSalirHistoria.grid(row=4, column=1, padx=10, pady=5, sticky="w")
+
+
+# Funcion para agregar una historial a la base de datos
+    def agregarHistorialMedico(self):
+        try:
+            # Obtener y limpiar los datos ingresados
+            fecha = self.svFechaHistoria.get().strip()
+            motivo = self.svMotivoHistorial.get().strip()
+            examen_auxiliar = self.svExamenAuxiliar.get().strip()
+            tratamiento = self.svTratamiento.get().strip()
+            detalle_historia = self.entryDetalleHistoria.get("1.0", "end-1c").strip()
+
+            # Validar que todos los campos estén completos
+            if not all([fecha, motivo, examen_auxiliar, tratamiento, detalle_historia]):
+                messagebox.showwarning(
+                    "Campos incompletos",
+                    "Todos los campos son requeridos. Por favor, complete todos los campos antes de continuar."
+                )
+                return  # Detener ejecución si hay campos vacíos
+
+            # Guardar historial si aún no existe
+            if self.idHistoriaMedica is None:
+                guardarHistorial(
+                    self.idPersonaHistoria,
+                    fecha,
+                    motivo,
+                    examen_auxiliar,
+                    tratamiento,
+                    detalle_historia
+                )
+
+            # Cerrar ventanas después de guardar
+            self.topAHistoria.destroy()
+            self.topHistorialMedica.destroy()
+
+        except Exception as e:
+            messagebox.showerror("Error inesperado", f"Ocurrió un error al guardar el historial médico: {e}")
+    
+    # Funcion de eliminar datos de un historial
+    def eliminarHistorialMedico(self):
+        try:
+            seleccion = self.tablaHistorial.selection()  
+
+            if not seleccion:
+                messagebox.showwarning('Advertencia', 'Por favor, seleccione un historial para eliminar.')
+                return
+
+            self.idHistoriaMedica = self.tablaHistorial.item(seleccion[0])['text']  # Obtener ID del historial
+
+            confirmar = messagebox.askyesno('Confirmar', '¿Está seguro que desea eliminar este Historial?')
+            if confirmar:
+                eliminarHistorial(self.idHistoriaMedica)  # Llamada a DAO
+                self.idHistoriaMedica = None
+                messagebox.showinfo('Éxito', 'Historial eliminado correctamente.')
+        except Exception as e:
+            messagebox.showerror('Error', f'Error al eliminar el Historial: {e}')
+
+# Funcion de editar los datos de un historial
+    def editarHistorial(self):
+        try:
+            seleccion = self.tablaHistorial.selection()
+
+            if not seleccion:
+                messagebox.showwarning('Advertencia', 'Por favor, seleccione un historial para editar.')
+                return
+
+            # Obtener datos seleccionados
+            self.idHistoriaMedica = self.tablaHistorial.item(seleccion)['text']
+            fecha = self.tablaHistorial.item(seleccion)['values'][1]
+            motivo = self.tablaHistorial.item(seleccion)['values'][2]
+            examen = self.tablaHistorial.item(seleccion)['values'][3]
+            tratamiento = self.tablaHistorial.item(seleccion)['values'][4]
+            detalle = self.tablaHistorial.item(seleccion)['values'][5]
+
+            self.topEditarHistorial = Toplevel()
+            self.topEditarHistorial.title('EDITAR HISTORIAL')
+            self.topEditarHistorial.resizable(0, 0)
+            self.topEditarHistorial.config(bg='#CDD8FF')
+
+            # FRAME DE DATOS
+            self.frameEditarHistorial = tk.LabelFrame(self.topEditarHistorial, text='Editar Datos del Historial',
+                                                    font=('ARIAL', 14, 'bold'), bg='#CDD8FF')
+            self.frameEditarHistorial.pack(fill="both", expand="yes", pady=20, padx=20)
+
+            # MOTIVO
+            tk.Label(self.frameEditarHistorial, text='Motivo de la Historia:', font=('ARIAL', 13, 'bold'), bg='#CDD8FF')\
+                .grid(row=0, column=0, padx=10, pady=8, sticky="e")
+            self.varMotivoEditar = tk.StringVar(value=motivo)
+            tk.Entry(self.frameEditarHistorial, textvariable=self.varMotivoEditar, font=('ARIAL', 13), width=40)\
+                .grid(row=0, column=1, padx=10, pady=8)
+
+            # EXAMEN AUXILIAR
+            tk.Label(self.frameEditarHistorial, text='Examen Auxiliar:', font=('ARIAL', 13, 'bold'), bg='#CDD8FF')\
+                .grid(row=1, column=0, padx=10, pady=8, sticky="e")
+            self.varExamenEditar = tk.StringVar(value=examen)
+            tk.Entry(self.frameEditarHistorial, textvariable=self.varExamenEditar, font=('ARIAL', 13), width=40)\
+                .grid(row=1, column=1, padx=10, pady=8)
+
+            # TRATAMIENTO
+            tk.Label(self.frameEditarHistorial, text='Tratamiento:', font=('ARIAL', 13, 'bold'), bg='#CDD8FF')\
+                .grid(row=2, column=0, padx=10, pady=8, sticky="e")
+            self.varTratamientoEditar = tk.StringVar(value=tratamiento)
+            tk.Entry(self.frameEditarHistorial, textvariable=self.varTratamientoEditar, font=('ARIAL', 13), width=40)\
+                .grid(row=2, column=1, padx=10, pady=8)
+
+            # DETALLE
+            tk.Label(self.frameEditarHistorial, text='Detalle del Historial:', font=('ARIAL', 13, 'bold'), bg='#CDD8FF')\
+                .grid(row=3, column=0, padx=10, pady=8, sticky="ne")
+            self.txtDetalleEditar = tk.Text(self.frameEditarHistorial, font=('ARIAL', 13), width=38, height=5)
+            self.txtDetalleEditar.grid(row=3, column=1, padx=10, pady=8)
+            self.txtDetalleEditar.insert('1.0', detalle)
+
+            # FECHA
+            self.frameFechaEditar = tk.LabelFrame(self.topEditarHistorial, bg='#CDD8FF')
+            self.frameFechaEditar.pack(fill="both", expand="yes", padx=20, pady=10)
+
+            tk.Label(self.frameFechaEditar, text='Fecha y Hora:', font=('ARIAL', 12), bg='#CDD8FF')\
+                .grid(row=0, column=0, padx=5, pady=3)
+            self.varFechaEditar = tk.StringVar(value=fecha)
+            tk.Entry(self.frameFechaEditar, textvariable=self.varFechaEditar, font=('ARIAL', 15), width=25)\
+                .grid(row=0, column=1, padx=5, pady=3)
+
+            # BOTONES
+            tk.Button(self.frameEditarHistorial, text='Guardar Cambios',
+                    font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#000992', cursor='hand2', activebackground='#4E56C6')\
+                .grid(row=4, column=0, padx=10, pady=5, sticky="e")
+
+            tk.Button(self.frameEditarHistorial, text='Salir', command=self.topEditarHistorial.destroy,
+                    font=('ARIAL', 12, 'bold'), fg='#DAD5D6', bg='#000000', cursor='hand2', activebackground='#646464')\
+                .grid(row=4, column=1, padx=10, pady=5, sticky="w")
+
+        except Exception as e:
+            messagebox.showerror('Error', f'Error al editar la Historia: {e}')

@@ -37,6 +37,38 @@ def guardarHistorial(idPersona, fechaHistoria, motivo, examenAuxiar, tratamiento
     except Exception as e:
         messagebox.showerror('Error', f'Error al Registrar el Historial Médico: {e}')
 
+# Metodo para eliminar el registro de un historial de paciente
+def eliminarHistorial(idHistorialMedica):
+    conexion = ConexionBD()
+    sql = f'DELETE FROM historialMedica WHERE idHistorialMedica = {idHistorialMedica}'
+
+    try:
+        conexion.cursor.execute(sql)
+        conexion.conexion.commit()
+    except Exception as e:
+        messagebox.showerror('Error', f'Error al Eliminar el Historial Médico: {e}')
+    finally:
+        conexion.cerrarConexion()
+
+# Metodo para editar la informacion de un historial de pacientes 
+def editarHistorial(fechaHistorial, motivo, examenAuxiliar, tratamiento, detalle, idHistoriaMedica):
+    conexion = ConexionBD()
+    sql_editar = f"""UPDATE historialMedica 
+    SET 
+        fechaHistorial = '{fechaHistorial}', 
+        motivo = '{motivo}', 
+        examenAuxiliar = '{examenAuxiliar}', 
+        tratamiento = '{tratamiento}', 
+        detalle = '{detalle}'
+    WHERE 
+        idHistoriaMedica = '{idHistoriaMedica}'"""
+    try:
+        conexion.cursor.execute(sql_editar)
+        conexion.cerrarConexion()
+    except Exception as e:
+        messagebox.showerror('Error', f'Error al Modificar el Historial: {e}')
+
+
 # Clase que representa el registro de una historia médica de un paciente
 class historiaMedica:
     def __init__(self, idPersona, fechaHistorial, motivo, examenAuxiliar, tratamiento, detalle):

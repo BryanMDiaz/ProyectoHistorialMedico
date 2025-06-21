@@ -44,7 +44,6 @@ def editarDatoPaciente(persona, idPersona):
     try:
         conexion.cursor.execute(sql_editar)
         conexion.cerrarConexion()
-        messagebox.showinfo('Modificar Paciente', 'Paciente Modificado con Éxito')
     except Exception as e:
         messagebox.showerror('Error', f'Error al Modificar el Paciente: {e}')
 
